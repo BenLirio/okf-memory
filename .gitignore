@@ -1,0 +1,22 @@
+# Secrets — never commit
+.env
+*.env
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Xcode / iOS (generated)
+ios/Recall/Recall.xcodeproj/
+ios/build/
+DerivedData/
+*.xcuserstate
+
+# Tools
+tools/
+
+# macOS
+.DS_Store
