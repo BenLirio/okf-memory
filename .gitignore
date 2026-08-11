@@ -10,6 +10,7 @@ __pycache__/
 .pytest_cache/
 
 # Xcode / iOS (generated)
+ios/Recall/Sources/Secrets.swift
 ios/Recall/Recall.xcodeproj/
 ios/build/
 DerivedData/
