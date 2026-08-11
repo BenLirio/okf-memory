@@ -7,8 +7,10 @@ import mimetypes
 from zoneinfo import ZoneInfo
 
 from fastapi import Depends, FastAPI, HTTPException, UploadFile, Form
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 
 from . import config, gitsync, llm
 from .okf import Bundle, OkfError
@@ -28,6 +30,21 @@ def auth(cred: HTTPAuthorizationCredentials | None = Depends(_bearer)) -> None:
         raise HTTPException(500, "server has no API_TOKEN configured")
     if cred is None or cred.credentials != config.API_TOKEN:
         raise HTTPException(401, "bad token")
+
+
+STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+
+@app.get("/viz", response_class=HTMLResponse)
+def viz() -> str:
+    # The page itself holds no data; its JS fetches /api/graph with the bearer token.
+    return (STATIC_DIR / "viz.html").read_text(encoding="utf-8")
+
+
+@app.get("/api/graph", dependencies=[Depends(auth)])
+def graph() -> dict:
+    return bundle.graph()
 
 
 @app.get("/api/health")

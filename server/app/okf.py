@@ -13,7 +13,7 @@ import datetime as dt
 import re
 import unicodedata
 import uuid
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from zoneinfo import ZoneInfo
 
 import frontmatter
@@ -131,6 +131,55 @@ class Bundle:
             # newest first: insert right after the "# Log" title
             text = re.sub(r"^# Log\n", f"# Log\n\n{heading}\n\n- {entry}\n", text, count=1)
         path.write_text(text, encoding="utf-8")
+
+    # ---------- graph ----------
+
+    LINK_RE = re.compile(r"\[([^\]]*)\]\(([^)\s]+)\)")
+
+    def graph(self) -> dict:
+        """Nodes = concepts; solid edges = markdown cross-links (spec's linking
+        convention), dashed edges = shared tags between otherwise-unlinked concepts."""
+        concepts = self.list_concepts()
+        paths = {c["path"] for c in concepts}
+        nodes, edges = [], []
+        linked: set[tuple[str, str]] = set()
+        for c in concepts:
+            fm = c["frontmatter"]
+            nodes.append({
+                "path": c["path"],
+                "type": str(fm.get("type", "memory")).lower(),
+                "title": fm.get("title", c["path"]),
+                "description": fm.get("description", ""),
+                "tags": [str(t) for t in fm.get("tags", [])],
+                "status": fm.get("status", "stable"),
+                "generated_at": str((fm.get("generated") or {}).get("at", "")),
+                "notifications": fm.get("notifications") or [],
+                "body": c["body"],
+            })
+            for m in self.LINK_RE.finditer(c["body"]):
+                target = m.group(2)
+                if "://" in target or target.startswith("mailto:"):
+                    continue
+                target = target.split("#")[0]
+                if target.startswith("/"):
+                    rel = target.lstrip("/")
+                else:  # relative to the concept's own directory
+                    rel = str(PurePosixPath(PurePosixPath(c["path"]).parent, target))
+                    rel = str(PurePosixPath(*[p for p in PurePosixPath(rel).parts if p != "."]))
+                    while "../" in rel:
+                        rel = re.sub(r"[^/]+/\.\./", "", rel, count=1)
+                if rel in paths and rel != c["path"] and (c["path"], rel) not in linked:
+                    linked.add((c["path"], rel))
+                    edges.append({"source": c["path"], "target": rel, "kind": "link"})
+        for i, a in enumerate(nodes):
+            for b in nodes[i + 1:]:
+                if (a["path"], b["path"]) in linked or (b["path"], a["path"]) in linked:
+                    continue
+                shared = {t.lower() for t in a["tags"]} & {t.lower() for t in b["tags"]}
+                if shared:
+                    edges.append({"source": a["path"], "target": b["path"],
+                                  "kind": "tag", "tags": sorted(shared)})
+        return {"nodes": nodes, "edges": edges}
 
     # ---------- notifications ----------
 

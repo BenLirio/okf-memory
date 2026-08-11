@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct MemoriesView: View {
+    @AppStorage("memoriesMode") private var mode = "web"
     @State private var memories: [MemorySummary] = []
     @State private var error: String?
     @State private var loading = false
@@ -13,7 +14,11 @@ struct MemoriesView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if let error {
+                if mode == "web" {
+                    GraphView()
+                        .ignoresSafeArea(edges: .bottom)
+                        .toolbarBackground(.hidden, for: .navigationBar)
+                } else if let error {
                     ContentUnavailableView("Can't reach the Mac mini",
                                            systemImage: "wifi.exclamationmark",
                                            description: Text(error))
@@ -32,7 +37,18 @@ struct MemoriesView: View {
                     }
                 }
             }
-            .navigationTitle("Memories")
+            .navigationTitle(mode == "web" ? "" : "Memories")
+            .navigationBarTitleDisplayMode(mode == "web" ? .inline : .automatic)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Picker("View", selection: $mode) {
+                        Image(systemName: "point.3.connected.trianglepath.dotted").tag("web")
+                        Image(systemName: "list.bullet").tag("list")
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 110)
+                }
+            }
             .navigationDestination(for: MemorySummary.self) { MemoryDetailView(summary: $0) }
             .refreshable { await load() }
             .task { await load() }

@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Memory Web</title>
+<style>
+  /* Dark-only viewer. Palette: dataviz reference instance, dark column. */
+  :root {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --ink: #ffffff;
+    --ink-2: #c3c2b7;
+    --muted: #898781;
+    --hairline: #2c2c2a;
+    --border: rgba(255,255,255,0.10);
+    --accent: #3987e5;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    background: var(--page);
+    color: var(--ink);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  #bar {
+    position: fixed; inset: 0 0 auto 0; z-index: 10;
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    padding: calc(10px + env(safe-area-inset-top)) 14px 10px;
+    background: color-mix(in srgb, var(--page) 82%, transparent);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--hairline);
+  }
+  #bar h1 { font-size: 15px; font-weight: 650; margin-right: 4px; letter-spacing: .2px; }
+  #bar h1 span { color: var(--muted); font-weight: 500; }
+  #search {
+    flex: 1 1 140px; min-width: 120px;
+    background: var(--surface); color: var(--ink);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 6px 10px; font: inherit; font-size: 14px; outline: none;
+  }
+  #search:focus { border-color: var(--accent); }
+  #chips { display: flex; gap: 6px; flex-wrap: wrap; width: 100%; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12.5px; color: var(--ink-2);
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 999px; padding: 3px 10px; cursor: pointer; user-select: none;
+  }
+  .chip .dot { width: 9px; height: 9px; border-radius: 50%; }
+  .chip.off { opacity: .38; }
+  .chip b { color: var(--ink); font-weight: 600; }
+  #cy { position: absolute; inset: 0; }
+  #panel {
+    position: fixed; z-index: 20; top: 0; right: 0; bottom: 0;
+    width: min(430px, 92vw);
+    background: var(--surface);
+    border-left: 1px solid var(--hairline);
+    transform: translateX(103%); transition: transform .28s cubic-bezier(.2,.8,.2,1);
+    display: flex; flex-direction: column;
+    box-shadow: -24px 0 48px rgba(0,0,0,.5);
+  }
+  #panel.open { transform: none; }
+  #panel header {
+    padding: calc(14px + env(safe-area-inset-top)) 18px 12px;
+    border-bottom: 1px solid var(--hairline);
+  }
+  #panel header .kicker { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  #panel header .kicker .dot { width: 10px; height: 10px; border-radius: 50%; }
+  #panel header .kicker .type { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-2); }
+  #panel header .kicker time { font-size: 12px; color: var(--muted); margin-left: auto; }
+  #panel h2 { font-size: 19px; line-height: 1.3; }
+  #close {
+    position: absolute; top: calc(10px + env(safe-area-inset-top)); right: 12px;
+    background: none; border: 0; color: var(--muted); font-size: 22px; cursor: pointer; padding: 4px;
+  }
+  #panel .scroll { overflow-y: auto; padding: 16px 18px calc(20px + env(safe-area-inset-bottom)); }
+  #panel .tags { color: var(--muted); font-size: 12.5px; margin-bottom: 12px; }
+  #panel .md { color: var(--ink-2); font-size: 14.5px; }
+  #panel .md h1, #panel .md h2, #panel .md h3 { color: var(--ink); margin: 14px 0 6px; font-size: 15.5px; }
+  #panel .md p, #panel .md ul, #panel .md ol { margin: 8px 0; }
+  #panel .md a { color: var(--accent); text-decoration: none; }
+  #panel .md code { background: var(--page); border-radius: 4px; padding: 1px 5px; font-size: 13px; }
+  .note {
+    margin: 10px 0; padding: 10px 12px; border-radius: 10px;
+    background: color-mix(in srgb, #c98500 12%, transparent);
+    border: 1px solid color-mix(in srgb, #c98500 35%, transparent);
+    font-size: 13.5px;
+  }
+  .note b { display: block; color: var(--ink); }
+  .note time { color: var(--muted); font-size: 12px; }
+  .links h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 18px 0 6px; }
+  .links button {
+    display: block; width: 100%; text-align: left;
+    background: var(--page); color: var(--ink-2);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 10px; margin: 6px 0; font: inherit; font-size: 13.5px; cursor: pointer;
+  }
+  .links button:hover { border-color: var(--accent); color: var(--ink); }
+  #empty, #gate {
+    position: absolute; inset: 0; display: grid; place-content: center;
+    text-align: center; color: var(--muted); gap: 10px; padding: 24px;
+  }
+  #gate input {
+    background: var(--surface); color: var(--ink); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 12px; font: inherit; width: 280px;
+  }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div id="bar">
+  <h1>Memory Web <span id="count"></span></h1>
+  <input id="search" type="search" placeholder="Search memories…" autocomplete="off">
+  <div id="chips"></div>
+</div>
+<div id="cy"></div>
+<div id="empty" class="hidden">
+  <div style="font-size:40px">🕸️</div>
+  <div>No memories yet — capture one and the web begins.</div>
+</div>
+<div id="gate" class="hidden">
+  <div>This viewer needs the API token.</div>
+  <input id="tokenInput" placeholder="paste API token" autocomplete="off">
+</div>
+<aside id="panel">
+  <header>
+    <div class="kicker"><span class="dot" id="pDot"></span><span class="type" id="pType"></span><time id="pDate"></time></div>
+    <h2 id="pTitle"></h2>
+    <button id="close" aria-label="Close">×</button>
+  </header>
+  <div class="scroll">
+    <div class="tags" id="pTags"></div>
+    <div id="pNotes"></div>
+    <div class="md" id="pBody"></div>
+    <div class="links" id="pOut"></div>
+    <div class="links" id="pBack"></div>
+  </div>
+</aside>
+<script src="/static/vendor/cytoscape.min.js"></script>
+<script src="/static/vendor/marked.min.js"></script>
+<script>
+// Categorical slots — dataviz reference palette, dark column, fixed order (never cycled).
+const SLOTS = ["#3987e5","#d95926","#199e70","#c98500","#d55181","#008300","#9085e9","#e66767"];
+const OTHER = "#898781";
+
+const qs = new URLSearchParams(location.search);
+let token = location.hash.startsWith("#token=") ? decodeURIComponent(location.hash.slice(7))
+          : qs.get("token") || sessionStorage.getItem("okf_token") || "";
+
+const $ = id => document.getElementById(id);
+
+async function boot() {
+  if (!token) return gate();
+  let res;
+  try { res = await fetch("/api/graph", { headers: { Authorization: "Bearer " + token } }); }
+  catch { return gate(); }
+  if (res.status === 401) return gate();
+  sessionStorage.setItem("okf_token", token);
+  history.replaceState(null, "", location.pathname); // keep the token out of the URL bar
+  render(await res.json());
+}
+
+function gate() {
+  $("gate").classList.remove("hidden");
+  $("tokenInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") { token = e.target.value.trim(); $("gate").classList.add("hidden"); boot(); }
+  });
+}
+
+let cy, graph, colorOf = {}, hiddenTypes = new Set();
+
+function render(data) {
+  graph = data;
+  const types = [...new Set(data.nodes.map(n => n.type))].sort();
+  types.forEach((t, i) => colorOf[t] = SLOTS[i] ?? OTHER);
+  $("count").textContent = data.nodes.length ? `· ${data.nodes.length}` : "";
+  if (!data.nodes.length) { $("empty").classList.remove("hidden"); return; }
+
+  const degree = {};
+  data.edges.forEach(e => { degree[e.source] = (degree[e.source]||0)+1; degree[e.target] = (degree[e.target]||0)+1; });
+
+  cy = cytoscape({
+    container: $("cy"),
+    elements: [
+      ...data.nodes.map(n => ({ data: { id: n.path, label: n.title, ...n,
+        size: 26 + Math.min(26, (degree[n.path]||0) * 5),
+        color: colorOf[n.type], bell: n.notifications.length ? "🔔 " : "" } })),
+      ...data.edges.map((e, i) => ({ data: { id: "e"+i, ...e } })),
+    ],
+    style: [
+      { selector: "node", style: {
+          "background-color": "data(color)",
+          "width": "data(size)", "height": "data(size)",
+          "label": e => e.data("bell") + e.data("label"),
+          "color": "#c3c2b7", "font-size": 11, "font-family": "system-ui, sans-serif",
+          "text-valign": "bottom", "text-margin-y": 7,
+          "text-wrap": "ellipsis", "text-max-width": 130,
+          "border-width": 2, "border-color": "#0d0d0d",  /* 2px surface ring */
+          "transition-property": "opacity", "transition-duration": "0.15s",
+      }},
+      { selector: "node:selected", style: { "border-color": "#ffffff", "color": "#ffffff", "font-weight": 600 }},
+      { selector: "edge", style: {
+          "curve-style": "bezier", "width": 2,
+          "line-color": "#383835", "opacity": 0.9,
+          "target-arrow-shape": "triangle", "target-arrow-color": "#52514e", "arrow-scale": 0.8,
+      }},
+      { selector: 'edge[kind="tag"]', style: {
+          "line-style": "dashed", "line-color": "#2c2c2a", "target-arrow-shape": "none", "width": 1.5,
+      }},
+      { selector: ".dim", style: { "opacity": 0.13 }},
+    ],
+    layout: layoutFor(data.nodes.length),
+    wheelSensitivity: 0.25,
+  });
+
+  cy.on("tap", "node", e => select(e.target));
+  cy.on("tap", e => { if (e.target === cy) deselect(); });
+  buildChips(types, data.nodes);
+  $("search").addEventListener("input", applyFilters);
+}
+
+const layoutFor = n => ({ name: "cose", animate: "end", animationDuration: 700,
+  idealEdgeLength: 110, nodeRepulsion: 9000, padding: 60, randomize: n > 2 });
+
+function buildChips(types, nodes) {
+  const counts = {};
+  nodes.forEach(n => counts[n.type] = (counts[n.type]||0)+1);
+  $("chips").innerHTML = "";
+  for (const t of types) {
+    const chip = document.createElement("span");
+    chip.className = "chip";
+    chip.innerHTML = `<span class="dot" style="background:${colorOf[t]}"></span>${t} <b>${counts[t]}</b>`;
+    chip.onclick = () => { chip.classList.toggle("off");
+      hiddenTypes.has(t) ? hiddenTypes.delete(t) : hiddenTypes.add(t); applyFilters(); };
+    $("chips").appendChild(chip);
+  }
+}
+
+function applyFilters() {
+  const q = $("search").value.trim().toLowerCase();
+  cy.batch(() => cy.nodes().forEach(n => {
+    const d = n.data();
+    const hitQ = !q || (d.title + " " + d.description + " " + d.tags.join(" ") + " " + d.body).toLowerCase().includes(q);
+    const shown = hitQ && !hiddenTypes.has(d.type);
+    n.style("display", shown ? "element" : "none");
+  }));
+}
+
+function select(node) {
+  cy.elements().addClass("dim");
+  node.closedNeighborhood().removeClass("dim");
+  node.select();
+  const d = node.data();
+  $("pDot").style.background = d.color;
+  $("pType").textContent = d.type;
+  $("pDate").textContent = (d.generated_at || "").slice(0, 10);
+  $("pTitle").textContent = d.title;
+  $("pTags").textContent = d.tags.map(t => "#" + t).join("  ");
+  $("pNotes").innerHTML = d.notifications.map(n =>
+    `<div class="note"><b>🔔 ${esc(n.title)}</b>${esc(n.body)}<br><time>${esc(n.at)}</time></div>`).join("");
+  $("pBody").innerHTML = marked.parse(d.body || "");
+  $("pBody").querySelectorAll("a").forEach(a => {
+    const href = a.getAttribute("href") || "";
+    if (href.startsWith("/") && href.endsWith(".md")) {
+      a.onclick = ev => { ev.preventDefault(); jump(href.slice(1)); };
+    } else { a.target = "_blank"; }
+  });
+  const out = graph.edges.filter(e => e.source === d.path && e.kind === "link");
+  const back = graph.edges.filter(e => e.target === d.path && e.kind === "link");
+  $("pOut").innerHTML = linkList("Links to", out.map(e => e.target));
+  $("pBack").innerHTML = linkList("Backlinks", back.map(e => e.source));
+  document.querySelectorAll(".links button").forEach(b => b.onclick = () => jump(b.dataset.path));
+  $("panel").classList.add("open");
+}
+
+const titleOf = p => (graph.nodes.find(n => n.path === p) || { title: p }).title;
+const linkList = (label, paths) => paths.length
+  ? `<h3>${label}</h3>` + paths.map(p => `<button data-path="${esc(p)}">${esc(titleOf(p))}</button>`).join("")
+  : "";
+
+function jump(path) {
+  const n = cy.getElementById(path);
+  if (!n.length) return;
+  cy.animate({ center: { eles: n }, zoom: 1.4, duration: 350 });
+  select(n);
+}
+
+function deselect() {
+  cy.elements().removeClass("dim").unselect();
+  $("panel").classList.remove("open");
+}
+$("close").onclick = deselect;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+boot();
+</script>
+</body>
+</html>

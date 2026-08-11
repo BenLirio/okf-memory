@@ -79,6 +79,12 @@ files. Usually one file; split only when the capture clearly contains independen
   If nothing needs remembering later, return an empty list. Times must be ISO 8601 with
   the local UTC offset, and must be in the future relative to the current time given.
 - `log_entry`: one concise past-tense line describing what was added.
+- Cross-link: when a new memory relates to existing concepts listed in the index
+  (same person, place, project, or follow-up), link them inline or under a
+  `## Related` heading using bundle-absolute markdown links, e.g.
+  `[Lunch with Sarah](/memories/2026-08-11-lunch-with-sarah.md)`. Only link concepts
+  that actually appear in the index, and only when the connection is real — these
+  links form the memory web.
 """
 
 

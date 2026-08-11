@@ -79,3 +79,28 @@ def test_malformed_neighbor_tolerated(bundle):
     bundle.write_concept(make_meta(), "body")
     assert len(bundle.list_concepts()) == 1
     assert any("bad.md" in p for p in bundle.validate())
+
+
+def test_graph_link_and_tag_edges(bundle):
+    a = bundle.write_concept(make_meta(title="Lunch with Sarah"), "Met Sarah.")
+    b = bundle.write_concept(
+        make_meta(title="Sarah's startup", tags=["people", "robotics"]),
+        f"She started a job.\n\n## Related\n\n- [Lunch](/{a})",
+    )
+    c = bundle.write_concept(make_meta(title="Hiking trip", tags=["people"]), "No links here.")
+    g = bundle.graph()
+    assert {n["path"] for n in g["nodes"]} == {a, b, c}
+    links = [e for e in g["edges"] if e["kind"] == "link"]
+    assert links == [{"source": b, "target": a, "kind": "link"}]
+    tag_edges = {(e["source"], e["target"]) for e in g["edges"] if e["kind"] == "tag"}
+    # a-b share 'people' but are already linked; a-c and b-c share 'people'
+    assert (b, a) not in tag_edges and (a, b) not in tag_edges
+    assert len(tag_edges) == 2
+
+
+def test_graph_ignores_external_and_broken_links(bundle):
+    a = bundle.write_concept(
+        make_meta(),
+        "[ext](https://example.com) [broken](/memories/nope.md) [self](/memories/x.md)",
+    )
+    assert bundle.graph()["edges"] == []
