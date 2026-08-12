@@ -5,17 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Memory Web</title>
 <style>
-  /* Dark-only viewer. Text/surface tokens: dataviz reference palette, dark column. */
+  /* Dark-only sci-fi HUD. Type colors: dataviz reference palette, dark column. */
   :root {
     color-scheme: dark;
-    --page: #07080e;
-    --surface: #15161d;
-    --ink: #ffffff;
-    --ink-2: #c3c2b7;
-    --muted: #898781;
-    --hairline: #262833;
-    --border: rgba(255,255,255,0.09);
-    --accent: #3987e5;
+    --page: #050810;
+    --surface: #0d131d;
+    --ink: #e9f4f8;
+    --ink-2: #a9c2cc;
+    --muted: #5f7886;
+    --hairline: #16222e;
+    --border: rgba(110,200,235,0.18);
+    --accent: #4fd6f2;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   }
   * { box-sizing: border-box; margin: 0; -webkit-tap-highlight-color: transparent; }
   html, body { height: 100%; overflow: hidden; }
@@ -35,58 +36,87 @@
     text-shadow: 0 1px 3px rgba(0,0,0,.95), 0 0 6px rgba(0,0,0,.9);
     transition: opacity .2s;
   }
-  .lbl.sel { color: var(--ink); }
+  .lbl.sel { color: var(--accent); }
   .lbl .bell { font-size: 10px; }
+
+  /* faint scanlines + vignette over the scene, under the HUD */
+  #scan {
+    position: absolute; inset: 0; pointer-events: none; z-index: 2;
+    background:
+      radial-gradient(ellipse at 50% 45%, transparent 55%, rgba(3,6,12,.55) 100%),
+      repeating-linear-gradient(0deg, rgba(255,255,255,.016) 0 1px, transparent 1px 3px);
+  }
 
   /* ---- top bar ---- */
   #bar {
     position: fixed; inset: 0 0 auto 0; z-index: 10;
     padding: calc(10px + env(safe-area-inset-top)) 14px 26px;
-    background: linear-gradient(to bottom, rgba(7,8,14,.92) 30%, rgba(7,8,14,.55) 70%, transparent);
+    background: linear-gradient(to bottom, rgba(5,8,16,.92) 30%, rgba(5,8,16,.55) 70%, transparent);
     pointer-events: none;
   }
   #bar > * { pointer-events: auto; }
   #topRow { display: flex; gap: 10px; align-items: center; }
-  #bar h1 { font-size: 17px; font-weight: 700; letter-spacing: .2px; white-space: nowrap; }
-  #bar h1 span { color: var(--muted); font-weight: 500; font-size: 14px; }
+  #bar h1 {
+    font: 700 13px/1.3 var(--mono); letter-spacing: .22em; white-space: nowrap;
+    color: var(--ink);
+  }
+  #bar h1 em { font-style: normal; color: var(--accent); }
+  #bar h1 span { color: var(--muted); font-weight: 500; letter-spacing: .1em; }
   #search {
     flex: 1; min-width: 0;
-    background: rgba(28,30,39,.85); color: var(--ink);
-    border: 1px solid var(--border); border-radius: 999px;
-    padding: 7px 14px; font: inherit; font-size: 14px; outline: none;
+    background: rgba(13,19,29,.85); color: var(--ink);
+    border: 1px solid var(--border);
+    clip-path: polygon(9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%, 0 9px);
+    padding: 7px 14px; font: 500 12.5px var(--mono); letter-spacing: .06em; outline: none;
     backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
   }
   #search::placeholder { color: var(--muted); }
   #search:focus { border-color: var(--accent); }
   #fit {
-    flex: none; width: 34px; height: 34px; border-radius: 50%;
-    background: rgba(28,30,39,.85); color: var(--ink-2);
+    flex: none; width: 34px; height: 34px;
+    background: rgba(13,19,29,.85); color: var(--accent);
     border: 1px solid var(--border); cursor: pointer; font-size: 16px; line-height: 1;
+    clip-path: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px);
     backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
   }
   #fit:active { color: var(--ink); border-color: var(--accent); }
   #chips { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 10px; }
   .chip {
     display: inline-flex; align-items: center; gap: 7px;
-    font-size: 12.5px; font-weight: 500; color: var(--ink-2);
-    background: rgba(28,30,39,.85); border: 1px solid var(--border);
-    border-radius: 999px; padding: 4px 12px 4px 9px; cursor: pointer; user-select: none;
+    font: 600 10.5px var(--mono); letter-spacing: .08em; text-transform: uppercase;
+    color: var(--ink-2);
+    background: rgba(13,19,29,.85); border: 1px solid var(--border);
+    clip-path: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px);
+    padding: 5px 12px 5px 9px; cursor: pointer; user-select: none;
     backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
     transition: opacity .15s, border-color .15s;
   }
-  .chip .dot { width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 6px currentColor; }
-  .chip b { color: var(--ink); font-weight: 650; font-variant-numeric: tabular-nums; }
+  .chip .dot { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 6px currentColor; }
+  .chip b { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
   .chip.off { opacity: .35; }
+
+  /* ---- bottom telemetry readout ---- */
+  #readout {
+    position: fixed; left: 14px; bottom: calc(10px + env(safe-area-inset-bottom));
+    z-index: 4; pointer-events: none;
+    font: 500 10px var(--mono); letter-spacing: .12em; text-transform: uppercase;
+    color: var(--muted);
+    text-shadow: 0 1px 2px rgba(0,0,0,.9);
+  }
+  #readout b { color: var(--accent); font-weight: 600; }
 
   /* ---- empty / gate ---- */
   #empty, #gate {
     position: absolute; inset: 0; display: grid; place-content: center;
     text-align: center; color: var(--muted); gap: 12px; padding: 24px; z-index: 5;
+    font: 500 12px var(--mono); letter-spacing: .1em;
   }
   #gate input {
     background: var(--surface); color: var(--ink); border: 1px solid var(--border);
-    border-radius: 10px; padding: 10px 14px; font: inherit; width: min(300px, 80vw);
+    clip-path: polygon(9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%, 0 9px);
+    padding: 10px 14px; font: 500 13px var(--mono); width: min(300px, 80vw); outline: none;
   }
+  #gate input:focus { border-color: var(--accent); }
   .hidden { display: none !important; }
 
   /* ---- bottom sheet ---- */
@@ -94,10 +124,11 @@
     position: fixed; z-index: 30; left: 0; right: 0; bottom: 0;
     margin: 0 auto; max-width: 560px;
     height: min(86dvh, 720px);
-    background: rgba(23,24,32,.92);
+    background: rgba(10,15,24,.92);
     backdrop-filter: blur(24px) saturate(1.3); -webkit-backdrop-filter: blur(24px) saturate(1.3);
     border: 1px solid var(--border); border-bottom: 0;
-    border-radius: 22px 22px 0 0;
+    border-radius: 4px 4px 0 0;
+    clip-path: polygon(18px 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%, 0 18px);
     box-shadow: 0 -18px 60px rgba(0,0,0,.55);
     transform: translateY(110%);
     transition: transform .34s cubic-bezier(.32,.72,.2,1);
@@ -106,18 +137,22 @@
   }
   #sheet.dragging { transition: none; }
   #grab { flex: none; padding: 9px 0 3px; cursor: grab; }
-  #grab .pill { width: 40px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.22); margin: 0 auto; }
+  #grab .pill { width: 44px; height: 3px; background: rgba(79,214,242,.45); margin: 0 auto; }
   #sheet header { flex: none; padding: 4px 20px 13px; border-bottom: 1px solid var(--hairline); position: relative; }
   #sheet .kicker { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-  #sheet .kicker .dot { width: 10px; height: 10px; border-radius: 50%; box-shadow: 0 0 8px currentColor; }
-  #sheet .kicker .type { font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; color: var(--ink-2); }
-  #sheet .kicker time { font-size: 12px; color: var(--muted); margin-left: auto; margin-right: 30px; }
+  #sheet .kicker .dot { width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 8px currentColor; }
+  #sheet .kicker .type {
+    font: 600 10.5px var(--mono); text-transform: uppercase; letter-spacing: .18em; color: var(--ink-2);
+  }
+  #sheet .kicker .desig { font: 500 10px var(--mono); letter-spacing: .1em; color: var(--muted); }
+  #sheet .kicker time { font: 500 10.5px var(--mono); color: var(--muted); margin-left: auto; margin-right: 30px; }
   #sheet h2 { font-size: 20px; line-height: 1.28; letter-spacing: -.01em; padding-right: 8px; }
   #close {
     position: absolute; top: 0; right: 12px;
-    width: 30px; height: 30px; border-radius: 50%;
-    background: rgba(255,255,255,.08); border: 0; color: var(--ink-2);
-    font-size: 15px; cursor: pointer; line-height: 1;
+    width: 30px; height: 30px;
+    background: rgba(110,200,235,.08); border: 1px solid var(--border); color: var(--ink-2);
+    clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+    font-size: 14px; cursor: pointer; line-height: 1;
   }
   #sheet .scroll {
     overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y;
@@ -126,35 +161,39 @@
   }
   .tagrow { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
   .tag {
-    font-size: 12px; color: var(--ink-2);
-    background: rgba(255,255,255,.06); border: 1px solid var(--border);
-    border-radius: 999px; padding: 2px 10px;
+    font: 500 11px var(--mono); letter-spacing: .05em; color: var(--ink-2);
+    background: rgba(110,200,235,.06); border: 1px solid var(--border);
+    clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+    padding: 2px 10px;
   }
   .md { color: var(--ink-2); font-size: 15px; line-height: 1.6; }
   .md h1, .md h2, .md h3 { color: var(--ink); margin: 16px 0 6px; font-size: 16px; }
   .md p, .md ul, .md ol { margin: 8px 0; }
   .md ul, .md ol { padding-left: 22px; }
   .md a { color: var(--accent); text-decoration: none; }
-  .md code { background: rgba(0,0,0,.35); border-radius: 5px; padding: 1px 6px; font-size: 13px; }
+  .md code { background: rgba(0,0,0,.35); border-radius: 5px; padding: 1px 6px; font-size: 13px; font-family: var(--mono); }
   .note {
-    margin: 10px 0 14px; padding: 11px 13px; border-radius: 12px;
+    margin: 10px 0 14px; padding: 11px 13px;
     background: rgba(201,133,0,.10);
     border: 1px solid rgba(201,133,0,.32);
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
     font-size: 13.5px; color: var(--ink-2);
   }
   .note b { display: block; color: var(--ink); margin-bottom: 1px; }
-  .note time { color: var(--muted); font-size: 12px; }
+  .note time { color: var(--muted); font-size: 12px; font-family: var(--mono); }
   .links h3 {
-    font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .1em;
+    font: 600 10.5px var(--mono); text-transform: uppercase; letter-spacing: .18em;
     color: var(--muted); margin: 20px 0 8px;
   }
+  .links h3::before { content: "◢ "; color: var(--accent); }
   .links button {
     display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
-    background: rgba(255,255,255,.05); color: var(--ink);
-    border: 1px solid var(--border); border-radius: 12px;
+    background: rgba(110,200,235,.05); color: var(--ink);
+    border: 1px solid var(--border);
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
     padding: 10px 13px; margin: 6px 0; font: inherit; font-size: 14px; cursor: pointer;
   }
-  .links button .dot { flex: none; width: 8px; height: 8px; border-radius: 50%; }
+  .links button .dot { flex: none; width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 5px currentColor; }
   .links button:active { border-color: var(--accent); }
   @media (prefers-reduced-motion: reduce) {
     #sheet, .lbl { transition: none; }
@@ -164,27 +203,30 @@
 <body>
 <canvas id="cv"></canvas>
 <div id="labels"></div>
+<div id="scan"></div>
 <div id="bar">
   <div id="topRow">
-    <h1>Memories <span id="count"></span></h1>
-    <input id="search" type="search" placeholder="Search…" autocomplete="off" spellcheck="false">
+    <h1>MEMORY<em>WEB</em> <span id="count"></span></h1>
+    <input id="search" type="search" placeholder="SCAN…" autocomplete="off" spellcheck="false">
     <button id="fit" title="Fit view" aria-label="Fit view">⌖</button>
   </div>
   <div id="chips"></div>
 </div>
+<div id="readout"></div>
 <div id="empty" class="hidden">
-  <div style="font-size:42px">🪐</div>
-  <div>No memories yet — capture one and the galaxy begins.</div>
+  <div style="font-size:42px">🛰️</div>
+  <div>NO BODIES ON SCAN<br><span style="letter-spacing:.05em">capture a memory and the galaxy begins</span></div>
 </div>
 <div id="gate" class="hidden">
-  <div>This viewer needs the API token.</div>
+  <div>◢ ACCESS TOKEN REQUIRED</div>
   <input id="tokenInput" placeholder="paste API token" autocomplete="off">
 </div>
 <aside id="sheet">
   <div id="grab"><div class="pill"></div></div>
   <header>
     <div class="kicker">
-      <span class="dot" id="pDot"></span><span class="type" id="pType"></span><time id="pDate"></time>
+      <span class="dot" id="pDot"></span><span class="type" id="pType"></span>
+      <span class="desig" id="pDesig"></span><time id="pDate"></time>
     </div>
     <h2 id="pTitle"></h2>
     <button id="close" aria-label="Close">✕</button>
@@ -202,11 +244,13 @@
 <script>
 "use strict";
 /* ============================================================
-   Memory Web — real-3D edition.
-   Each memory is a procedurally textured, spinning planet in a
-   WebGL scene: tilted rings, orbiting moons, depth-parallax
-   starfield. Layout still runs the 2D label-aware force sim;
-   the camera flies over the plane.
+   Memory Web — full-3D edition.
+   Memories are matte, procedurally textured planets laid out by
+   a 3D force sim into a loose galactic disk. The camera truly
+   orbits the cloud: one finger spins the galaxy, two fingers
+   pinch-zoom and pan, idle time drifts slowly. Planets come in
+   seven families (terran / gas / molten / rock / ice / desert /
+   toxic) with per-seed palettes, rings and moons.
    ============================================================ */
 
 const $ = id => document.getElementById(id);
@@ -298,66 +342,124 @@ let graph = null;
 const hiddenTypes = new Set();
 let selected = null;
 let alpha = 0;
-let renderer, scene, camera, sunLight, selRing;
-const cam = { x: 0, y: 0, D: 700 };       // camera state (three coords; y up)
-let camGlide = null;                       // {x,y,D} target or null
+let renderer, scene, camera, selRing;
+
+/* orbit camera: spherical around a glideable target */
+const cam = { yaw: 0.55, pitch: innerHeight > innerWidth ? 0.52 : 0.35, dist: 700, tx: 0, ty: 0, tz: 0 };
+let camGlide = null;                       // partial {yaw,pitch,dist,tx,ty,tz}
+let lastInput = 0;                         // for idle auto-drift
 const FOV = 50, FOV2 = FOV * Math.PI / 360;
-const wpp = D => 2 * D * Math.tan(FOV2) / H;   // world units per pixel at plane z=0
+const wpp = D => 2 * D * Math.tan(FOV2) / H;   // world units per pixel at target depth
 let measureCtx = null;
 
+function camDir() {   // unit vector from target toward camera
+  const cp = Math.cos(cam.pitch);
+  return [cp * Math.sin(cam.yaw), Math.sin(cam.pitch), cp * Math.cos(cam.yaw)];
+}
+function camBasis() { // right + up vectors of the view plane
+  const d = camDir(), f = [-d[0], -d[1], -d[2]];
+  const rl = Math.hypot(f[2], f[0]) || 1;
+  const r = [-f[2] / rl, 0, f[0] / rl];
+  const u = [r[1]*f[2] - r[2]*f[1], r[2]*f[0] - r[0]*f[2], r[0]*f[1] - r[1]*f[0]];
+  return { r, u };
+}
+function applyCamera() {
+  const d = camDir();
+  camera.position.set(cam.tx + d[0]*cam.dist, cam.ty + d[1]*cam.dist, cam.tz + d[2]*cam.dist);
+  camera.lookAt(cam.tx, cam.ty, cam.tz);
+}
+
 /* ---------- planet recipes ---------- */
+/* Each type maps to a weighted family pool, so one type still reads
+   as kin while individual planets vary. */
+const KIND_POOL = {
+  memory:   ["terran","terran","terran","ice","desert"],
+  person:   ["gas","gas","gas","toxic"],
+  reminder: ["molten","molten","toxic"],
+};
+const SEA_RAMPS = [
+  [[6,24,56],[15,55,112],[26,90,168],[50,125,214]],     // azure
+  [[4,38,44],[10,78,84],[22,124,120],[64,174,158]],     // teal
+  [[12,18,62],[32,42,112],[62,72,162],[104,112,202]],   // violet
+];
+const LAND_RAMPS = [
+  [[21,92,76],[44,128,88],[116,156,92],[188,182,138]],  // verdant
+  [[96,70,40],[136,98,56],[174,136,88],[208,184,140]],  // arid
+  [[58,78,58],[98,108,78],[148,148,108],[198,193,158]], // scrub
+];
+const SAND_RAMPS = [
+  [[92,52,28],[150,92,48],[198,146,86],[232,196,138]],  // rust
+  [[80,62,40],[130,106,66],[180,152,100],[220,198,148]],// ochre
+  [[96,58,52],[152,96,76],[200,142,104],[236,192,150]], // rose
+];
+
 function planetConfig(n) {
   const seed = fnv1a(n.path);
   const rng = mulberry32(seed);
   const tint = hex3(n.color);
-  const kind = n.type === "memory" ? "ocean"
-             : n.type === "person" ? "gas"
-             : n.type === "reminder" ? "molten"
-             : ["rock", "ice", "gas"][fnv1a(n.type) % 3];
+  const pool = KIND_POOL[n.type] || ["rock","ice","desert","gas","toxic"];
+  const kind = pool[Math.floor(rng() * pool.length)];
   const cfg = {
     seed, rng, tint, kind,
+    sizeMul: 0.85 + rng() * 0.4,
     tilt: (rng() - 0.5) * 0.9,
     lean: (rng() - 0.5) * 0.5,
     f: 1.9 + rng() * 1.8,
     o1: rng() * 90, o2: rng() * 90, o3: rng() * 90,
     spin: (0.05 + rng() * 0.1) * (rng() < 0.5 ? -1 : 1),
-    hasRing: kind === "gas" ? true : (kind === "molten" ? false : rng() < 0.22),
-    z: (rng() - 0.5) * 110,                // depth jitter → parallax between planets
+    hasRing: kind === "gas" ? rng() < 0.75 : (kind === "molten" ? false : rng() < 0.18),
   };
   if (cfg.hasRing) {
-    const rc = mixC(tint, [255, 255, 255], 0.55);
+    const rc = [
+      mixC(tint, [255, 255, 255], 0.65),          // icy
+      mixC(tint, [205, 172, 128], 0.55),          // dusty
+      mixC(tint, [180, 220, 255], 0.45),          // tinted
+    ][Math.floor(rng() * 3)];
+    cfg.ringTiltX = Math.PI / 2 - 0.1 - rng() * 0.35;
     cfg.ringBands = Array.from({ length: 3 + Math.floor(rng() * 3) }, (_, i) => ({
       rx: 1.42 + i * (0.13 + rng() * 0.05), w: 0.06 + rng() * 0.09,
       a: 0.16 + rng() * 0.3, c: rc,
     }));
   }
-  if (kind === "ocean") {
+  if (kind === "terran") {
+    cfg.seaRamp = SEA_RAMPS[Math.floor(rng() * SEA_RAMPS.length)];
+    cfg.landRamp = LAND_RAMPS[Math.floor(rng() * LAND_RAMPS.length)];
     cfg.sea = 0.45 + rng() * 0.15;
     cfg.cloud = 0.52 + rng() * 0.16;
     cfg.cap = 0.72 + rng() * 0.16;
   }
   if (kind === "gas") {
     cfg.bands = 3 + Math.floor(rng() * 4);
-    cfg.wobble = 0.5 + rng() * 1.3;
+    cfg.wobble = 0.5 + rng() * 1.5;
     cfg.phase = rng() * 6.28;
     cfg.spot = rng() < 0.65
       ? { lon: rng() * 6.28, lat: (rng() - 0.5) * 1.4, w: 0.5 + rng() * 0.3, h: 0.22 + rng() * 0.14 }
       : null;
   }
   if (kind === "molten") { cfg.crackW = 0.05 + rng() * 0.04; cfg.glow = 0.75 + rng() * 0.25; }
-  if (kind === "rock") {
-    cfg.craters = Array.from({ length: 6 + Math.floor(rng() * 8) }, () => {
+  if (kind === "rock" || kind === "desert") {
+    cfg.craters = Array.from({ length: (kind === "rock" ? 6 : 2) + Math.floor(rng() * 7) }, () => {
       const z = rng() * 2 - 1, a = rng() * 6.28, s = Math.sqrt(1 - z*z);
       return { v: [s * Math.cos(a), z, s * Math.sin(a)], r: 0.12 + rng() * 0.22 };
     });
   }
-  const nm = kind === "gas" ? Math.floor(rng() * 3) : (rng() < 0.4 ? 1 : 0);
+  if (kind === "desert") {
+    cfg.sandRamp = SAND_RAMPS[Math.floor(rng() * SAND_RAMPS.length)];
+    cfg.duneK = 7 + rng() * 9;
+    cfg.maria = 0.6 + rng() * 0.12;
+  }
+  if (kind === "toxic") {
+    cfg.acid = mixC(tint, rng() < 0.55 ? [110, 225, 90] : [190, 100, 235], 0.55);
+    cfg.warp = 1.2 + rng() * 1.8;
+    cfg.veinW = 0.045 + rng() * 0.045;
+  }
+  const nm = kind === "gas" ? Math.floor(rng() * 4) : (rng() < 0.45 ? 1 + (rng() < 0.2 ? 1 : 0) : 0);
   cfg.moons = Array.from({ length: nm }, () => ({
-    dist: (cfg.hasRing ? 2.5 : 1.9) + rng() * 0.8,
+    dist: (cfg.hasRing ? 2.5 : 1.9) + rng() * 0.9,
     size: 0.1 + rng() * 0.1,
     speed: (0.1 + rng() * 0.25) * (rng() < 0.5 ? -1 : 1),
     phase: rng() * 6.28,
-    incline: (rng() - 0.5) * 0.6,
+    incline: (rng() - 0.5) * 0.7,
     shade: 0.55 + rng() * 0.45,
   }));
   return cfg;
@@ -367,11 +469,12 @@ function planetConfig(n) {
 function surfaceColor(cfg, p, lat) {
   const S = cfg.seed, F = cfg.f;
   const x = p[0]*F + cfg.o1, y = p[1]*F + cfg.o2, z = p[2]*F + cfg.o3;
-  if (cfg.kind === "ocean") {
+  if (cfg.kind === "terran") {
     const n1 = fbm3(x, y, z, S);
+    const [s0, s1, s2, s3] = cfg.seaRamp, [l0, l1, l2, l3] = cfg.landRamp;
     let col;
-    if (n1 < cfg.sea) col = ramp([[0,[6,24,56]],[0.55,[15,55,112]],[0.85,[26,90,168]],[1,[50,125,214]]], n1 / cfg.sea);
-    else col = ramp([[0,[21,92,76]],[0.45,[44,128,88]],[0.8,[116,156,92]],[1,[188,182,138]]], (n1-cfg.sea)/(1-cfg.sea));
+    if (n1 < cfg.sea) col = ramp([[0,s0],[0.55,s1],[0.85,s2],[1,s3]], n1 / cfg.sea);
+    else col = ramp([[0,l0],[0.45,l1],[0.8,l2],[1,l3]], (n1-cfg.sea)/(1-cfg.sea));
     const capT = (Math.abs(Math.sin(lat)) - cfg.cap) * 8;
     if (capT > 0) col = mixC(col, [226,236,246], Math.min(1, capT));
     const c = fbm3(x*1.9+7.3, y*1.9+2.1, z*1.9+4.4, S+55, 3);
@@ -414,6 +517,32 @@ function surfaceColor(cfg, p, lat) {
     const m = Math.pow(Math.max(0, 1 - Math.abs(c-0.5)/0.045), 3);
     return [col, scaleC(mixC(cfg.tint, [200,235,255], 0.6), m * 0.3)];
   }
+  if (cfg.kind === "desert") {
+    const n1 = fbm3(x, y, z, S);
+    const band = (Math.sin(lat * cfg.duneK + (fbm3(x*1.2, y*1.2, z*1.2, S+31) - 0.5) * 7) + 1) / 2;
+    const [d0, d1, d2, d3] = cfg.sandRamp;
+    let col = ramp([[0,d0],[0.4,d1],[0.75,d2],[1,d3]], n1 * 0.55 + band * 0.45);
+    const m = fbm3(x*0.7+11, y*0.7+3, z*0.7+6, S+43, 3);
+    if (m > cfg.maria) col = mixC(col, scaleC(d0, 0.55), Math.min(1, (m - cfg.maria) * 5));
+    for (const cr of cfg.craters) {
+      const d = Math.acos(Math.max(-1, Math.min(1, p[0]*cr.v[0] + p[1]*cr.v[1] + p[2]*cr.v[2]))) / cr.r;
+      if (d < 1) col = scaleC(col, 0.78 + 0.22 * d * d);
+      else if (d < 1.25) col = scaleC(col, 1.1);
+    }
+    return [col, null];
+  }
+  if (cfg.kind === "toxic") {
+    const q = fbm3(x + 5.2, y + 1.3, z + 8.7, S + 17, 3);
+    const n1 = fbm3(x + q * cfg.warp, y + q * cfg.warp, z + q * cfg.warp, S);
+    const A = cfg.acid;
+    const col = ramp([
+      [0, scaleC(A, 0.12)], [0.4, scaleC(A, 0.32)], [0.7, scaleC(A, 0.6)], [1, scaleC(A, 0.95)],
+    ], n1);
+    const c = fbm3(x*1.8+2.4, y*1.8+9.1, z*1.8+4.6, S+29, 5);
+    let m = Math.max(0, 1 - Math.abs(c - 0.5) / cfg.veinW);
+    m = Math.pow(m, 2.4);
+    return [col, scaleC(mixC(A, [255,255,255], 0.25), m * 0.85)];
+  }
   // rock
   const n1 = fbm3(x, y, z, S);
   let col = ramp([[0, scaleC(cfg.tint, 0.24)], [0.55, scaleC(cfg.tint, 0.55)], [1, scaleC(cfg.tint, 0.95)]], n1);
@@ -432,7 +561,7 @@ function bakeTextures(cfg) {
   const img = g1.createImageData(TW, TH);
   const px = img.data;
   let em = null, epx = null, g2 = null, c2 = null;
-  const wantsEmissive = cfg.kind === "molten" || cfg.kind === "ice";
+  const wantsEmissive = cfg.kind === "molten" || cfg.kind === "ice" || cfg.kind === "toxic";
   if (wantsEmissive) {
     c2 = document.createElement("canvas"); c2.width = TW; c2.height = TH;
     g2 = c2.getContext("2d");
@@ -500,38 +629,44 @@ function buildScene() {
   renderer.setPixelRatio(Math.min(2, devicePixelRatio || 1));
   renderer.setSize(W, H);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.35;
+  renderer.toneMappingExposure = 1.05;                 // matte: no hot highlights
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x07080e);
-  camera = new THREE.PerspectiveCamera(FOV, W / H, 1, 12000);
+  scene.background = new THREE.Color(0x050810);
+  camera = new THREE.PerspectiveCamera(FOV, W / H, 1, 16000);
 
-  sunLight = new THREE.DirectionalLight(0xfff2dc, 2.9);
-  sunLight.position.set(-600, 520, 760);
+  const sunDir = [-600, 420, 760];
+  const sunLight = new THREE.DirectionalLight(0xfff1d8, 1.9);
+  sunLight.position.set(...sunDir);
   scene.add(sunLight);
-  scene.add(new THREE.AmbientLight(0x8fa3cc, 0.55));
+  scene.add(new THREE.HemisphereLight(0x90b4d8, 0x1a1410, 0.5));
+  scene.add(new THREE.AmbientLight(0x2c3c58, 0.7));
 
-  // deep space: nebula sprites + two star shells with true depth parallax
+  /* deep space: nebula sprites + two star shells, spherical around
+     the cloud so every orbit angle looks out into stars */
   const rand = mulberry32(2049);
+  const sphereDir = () => {
+    const z = rand() * 2 - 1, a = rand() * 6.2832, s = Math.sqrt(1 - z*z);
+    return [s * Math.cos(a), z, s * Math.sin(a)];
+  };
   const NEB = ["64,44,122", "26,72,110", "110,40,86", "20,90,84"];
-  for (let i = 0; i < 9; i++) {
+  for (let i = 0; i < 12; i++) {
     const m = new THREE.SpriteMaterial({
-      map: radialSpriteTexture(NEB[i % NEB.length], 0.16),
+      map: radialSpriteTexture(NEB[i % NEB.length], 0.13),
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
     });
     const s = new THREE.Sprite(m);
-    const t = rand();
-    s.position.set((t - 0.5) * 3600 + (rand()-0.5)*600, (0.5 - t) * 2400 + (rand()-0.5)*700, -900 - rand()*900);
-    const sc = 900 + rand() * 1400;
+    const d = sphereDir(), R = 2800 + rand() * 900;
+    s.position.set(d[0]*R, d[1]*R * 0.75, d[2]*R);
+    const sc = 900 + rand() * 1500;
     s.scale.set(sc, sc, 1);
     scene.add(s);
   }
   const starTex = radialSpriteTexture("255,255,255", 1, 0.5);
-  for (const [count, spread, zNear, zFar, size] of [[650, 2600, -420, -1500, 6], [700, 5200, -1600, -3200, 9]]) {
+  for (const [count, r0, r1, size] of [[750, 2300, 3400, 7], [550, 4200, 5400, 11]]) {
     const pos = new Float32Array(count * 3), col = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
-      pos[i*3] = (rand() - 0.5) * spread;
-      pos[i*3+1] = (rand() - 0.5) * spread * 0.7;
-      pos[i*3+2] = zNear + rand() * (zFar - zNear);
+      const d = sphereDir(), R = r0 + rand() * (r1 - r0);
+      pos[i*3] = d[0]*R; pos[i*3+1] = d[1]*R; pos[i*3+2] = d[2]*R;
       const c = rand() < 0.78 ? [0.8,0.84,0.91] : rand() < 0.5 ? [0.68,0.75,1] : [1,0.85,0.63];
       const b = 0.5 + rand() * 0.5;
       col[i*3] = c[0]*b; col[i*3+1] = c[1]*b; col[i*3+2] = c[2]*b;
@@ -544,26 +679,40 @@ function buildScene() {
       depthWrite: false, sizeAttenuation: true, blending: THREE.AdditiveBlending,
     })));
   }
-  // the sun itself, far upper-left — matches the directional light
+  // the sun itself — matches the directional light's bearing
+  const sl = Math.hypot(...sunDir);
   const sun = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: radialSpriteTexture("255,238,208", 0.9),
+    map: radialSpriteTexture("255,238,208", 0.85),
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
   }));
-  sun.position.set(-2600, 2200, -2800);
-  sun.scale.set(2600, 2600, 1);
+  sun.position.set(sunDir[0]/sl*5600, sunDir[1]/sl*5600, sunDir[2]/sl*5600);
+  sun.scale.set(3200, 3200, 1);
   scene.add(sun);
 
-  // selection halo (dashed circle, billboarded)
+  /* selection: targeting reticle — four arcs + cardinal ticks, HUD-style */
   const selC = document.createElement("canvas");
-  selC.width = selC.height = 128;
+  selC.width = selC.height = 160;
   const sg = selC.getContext("2d");
-  sg.strokeStyle = "rgba(255,255,255,0.95)";
+  sg.strokeStyle = "rgba(120,225,250,0.95)";
+  sg.lineWidth = 2.5;
+  for (let k = 0; k < 4; k++) {
+    sg.beginPath();
+    sg.arc(80, 80, 62, k * Math.PI/2 + 0.32, (k + 1) * Math.PI/2 - 0.32);
+    sg.stroke();
+  }
   sg.lineWidth = 3;
-  sg.setLineDash([4, 9]);
-  sg.beginPath(); sg.arc(64, 64, 58, 0, 6.2832); sg.stroke();
+  for (let k = 0; k < 4; k++) {
+    const a = k * Math.PI/2;
+    sg.beginPath();
+    sg.moveTo(80 + Math.cos(a)*66, 80 + Math.sin(a)*66);
+    sg.lineTo(80 + Math.cos(a)*76, 80 + Math.sin(a)*76);
+    sg.stroke();
+  }
   selRing = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: new THREE.CanvasTexture(selC), transparent: true, depthWrite: false,
+    map: new THREE.CanvasTexture(selC), transparent: true,
+    depthWrite: false, depthTest: false,
   }));
+  selRing.renderOrder = 999;
   selRing.visible = false;
   scene.add(selRing);
 }
@@ -577,16 +726,12 @@ function buildNodeMesh(n) {
   group.add(tiltG);
 
   const { map, emissiveMap } = bakeTextures(cfg);
-  const shiny = cfg.kind === "ocean" || cfg.kind === "ice";
-  const mat = new THREE.MeshPhongMaterial({
-    map, transparent: true,
-    specular: new THREE.Color(shiny ? 0x556677 : 0x151515),
-    shininess: shiny ? 22 : 6,
-  });
+  /* Lambert = pure diffuse: no specular highlight, no glare */
+  const mat = new THREE.MeshLambertMaterial({ map, transparent: true });
   if (emissiveMap) {
     mat.emissive = new THREE.Color(0xffffff);
     mat.emissiveMap = emissiveMap;
-    mat.emissiveIntensity = 1.15;
+    mat.emissiveIntensity = 1.1;
   }
   const sphere = new THREE.Mesh(new THREE.SphereGeometry(n.r, 48, 32), mat);
   tiltG.add(sphere);
@@ -600,19 +745,20 @@ function buildNodeMesh(n) {
       side: THREE.DoubleSide, depthWrite: false,
     });
     const ring = new THREE.Mesh(new THREE.PlaneGeometry(2 * outer * n.r, 2 * outer * n.r), rmat);
-    ring.rotation.x = Math.PI / 2 - 0.14;
+    ring.rotation.x = cfg.ringTiltX;
     tiltG.add(ring);
     n.mats.push(rmat);
     n.visR = outer * n.r;
   } else n.visR = 1.25 * n.r;
 
-  // atmosphere glow
+  // atmosphere: a whisper of rim light, not a glow bomb
   const t = cfg.tint;
+  const atmA = cfg.kind === "molten" ? 0.3 : cfg.kind === "toxic" ? 0.24 : 0.16;
   const atm = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: radialSpriteTexture(`${t[0]},${t[1]},${t[2]}`, cfg.kind === "molten" ? 0.5 : 0.34),
+    map: radialSpriteTexture(`${t[0]},${t[1]},${t[2]}`, atmA),
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
   }));
-  atm.scale.set(n.r * 3.6, n.r * 3.6, 1);
+  atm.scale.set(n.r * 3, n.r * 3, 1);
   group.add(atm);
   n.mats.push(atm.material);
 
@@ -621,9 +767,9 @@ function buildNodeMesh(n) {
     const pivot = new THREE.Group();
     pivot.rotation.x = m.incline;
     const mr = Math.max(1.6, m.size * n.r);
-    const mmat = new THREE.MeshPhongMaterial({
+    const mmat = new THREE.MeshLambertMaterial({
       color: new THREE.Color(m.shade * 0.62, m.shade * 0.62, m.shade * 0.66),
-      transparent: true, shininess: 4,
+      transparent: true,
     });
     const moon = new THREE.Mesh(new THREE.SphereGeometry(mr, 20, 14), mmat);
     moon.position.set(m.dist * n.r, 0, 0);
@@ -634,7 +780,7 @@ function buildNodeMesh(n) {
     n.moonPivots.push({ pivot, m });
   }
 
-  group.position.set(n.x, -n.y, cfg.z);
+  group.position.set(n.x, n.y, n.z);
   scene.add(group);
   n.group = group;
   n.fade = 1;
@@ -649,11 +795,11 @@ function buildEdgeLines() {
       const ca = new THREE.Color(e.a.color), cb = new THREE.Color(e.b.color);
       geo.setAttribute("color", new THREE.BufferAttribute(new Float32Array([
         ca.r, ca.g, ca.b, cb.r, cb.g, cb.b]), 3));
-      mat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.55 });
+      mat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.5 });
       line = new THREE.Line(geo, mat);
     } else {
       mat = new THREE.LineDashedMaterial({
-        color: 0x77766f, dashSize: 5, gapSize: 8, transparent: true, opacity: 0.4,
+        color: 0x5f7886, dashSize: 5, gapSize: 8, transparent: true, opacity: 0.35,
       });
       line = new THREE.Line(geo, mat);
     }
@@ -664,8 +810,8 @@ function buildEdgeLines() {
 
 function syncEdge(e) {
   const p = e.line.geometry.attributes.position.array;
-  p[0] = e.a.x; p[1] = -e.a.y; p[2] = e.a.cfg.z;
-  p[3] = e.b.x; p[4] = -e.b.y; p[5] = e.b.cfg.z;
+  p[0] = e.a.x; p[1] = e.a.y; p[2] = e.a.z;
+  p[3] = e.b.x; p[4] = e.b.y; p[5] = e.b.z;
   e.line.geometry.attributes.position.needsUpdate = true;
   if (e.kind === "tag") e.line.computeLineDistances();
 }
@@ -686,8 +832,7 @@ function wrapTitle(title) {
     while (measureCtx.measureText(l).width > 118 && l.length > 2) l = l.slice(0, -2) + "…";
     lines[1] = l;
   }
-  const w = Math.max(...lines.map(l => measureCtx.measureText(l).width));
-  return { lines, w };
+  return lines;
 }
 
 function assignColors(types) {
@@ -710,22 +855,27 @@ function init(data) {
   data.edges.forEach(e => { degree[e.source] = (degree[e.source]||0)+1; degree[e.target] = (degree[e.target]||0)+1; });
 
   const rand = mulberry32(1234);
+  const N = data.nodes.length;
   nodes = data.nodes.map((n, i) => {
-    const r = 15 + Math.min(13, (degree[n.path] || 0) * 3);
-    const { lines, w } = wrapTitle(n.title);
-    const golden = i * 2.399963;
-    const rad = 75 * Math.sqrt(i + 0.6);
     const node = {
-      ...n, r, labelLines: lines, labelW: w,
-      x: Math.cos(golden) * rad + (rand()-.5) * 30,
-      y: Math.sin(golden) * rad + (rand()-.5) * 30,
-      vx: 0, vy: 0, hidden: false,
+      ...n, hidden: false, vx: 0, vy: 0, vz: 0,
+      labelLines: wrapTitle(n.title),
       color: colorOf[n.type],
       hasBell: (n.notifications || []).length > 0,
+      lblShown: false,
     };
+    node.lblW = Math.max(0, ...node.labelLines.map(l => measureCtx.measureText(l).width)) +
+      (node.hasBell ? 15 : 0);
     node.cfg = planetConfig(node);
-    node.bw = Math.max(node.cfg.hasRing ? 3.6 * r : 2.5 * r, w) + 20;
-    node.bh = 2*r + 10 + lines.length * 13 + 14;
+    node.r = (15 + Math.min(13, (degree[n.path] || 0) * 3)) * node.cfg.sizeMul;
+    // fibonacci-sphere start, squashed into a disk, jittered
+    const gy = 1 - 2 * (i + 0.5) / N;
+    const gr = Math.sqrt(Math.max(0, 1 - gy * gy));
+    const ga = i * 2.399963;
+    const rad = 60 * Math.cbrt(i + 1);
+    node.x = Math.cos(ga) * gr * rad + (rand()-.5) * 40;
+    node.y = gy * rad * 0.5 + (rand()-.5) * 30;
+    node.z = Math.sin(ga) * gr * rad + (rand()-.5) * 40;
     return node;
   });
   nodes.forEach(n => byPath[n.path] = n);
@@ -751,7 +901,7 @@ function init(data) {
   $("search").addEventListener("input", applyFilters);
 
   alpha = 1;
-  for (let i = 0; i < 260; i++) tick();
+  for (let i = 0; i < 300; i++) tick();
   fitView(false);
   renderer.setAnimationLoop(frame);
 
@@ -761,59 +911,63 @@ function init(data) {
   }
 }
 
-/* ---------- physics (2D plane): springs + repulsion + label boxes ---------- */
-let dragNode = null;
+/* ---------- physics: 3D springs + repulsion, disk-biased gravity ---------- */
 function tick() {
   if (alpha < 0.004) { alpha = 0; return; }
   alpha *= 0.976;
-  const vis = nodes.filter(n => !n.hidden && n !== dragNode);
   const all = nodes.filter(n => !n.hidden);
 
-  for (const n of vis) { n.vx -= n.x * 0.028 * alpha; n.vy -= n.y * 0.028 * alpha; }
+  // gravity: stronger on y → the cloud settles into a galactic disk
+  for (const n of all) {
+    n.vx -= n.x * 0.026 * alpha;
+    n.vy -= n.y * 0.06 * alpha;
+    n.vz -= n.z * 0.026 * alpha;
+  }
 
   for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++) {
     const a = all[i], b = all[j];
-    let dx = b.x - a.x, dy = b.y - a.y;
-    let d2 = dx*dx + dy*dy;
-    if (d2 < 1) { dx = (i - j) * 0.01; dy = 0.01; d2 = 1; }
-    const f = Math.min(6, 6200 / d2) * alpha;
-    const d = Math.sqrt(d2), fx = dx / d * f, fy = dy / d * f;
-    a.vx -= fx; a.vy -= fy; b.vx += fx; b.vy += fy;
+    let dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
+    let d2 = dx*dx + dy*dy + dz*dz;
+    if (d2 < 1) { dx = (i - j) * 0.01; dy = 0.01; dz = 0.013; d2 = 1; }
+    const f = Math.min(7, 16000 / d2) * alpha;
+    const d = Math.sqrt(d2), fx = dx / d * f, fy = dy / d * f, fz = dz / d * f;
+    a.vx -= fx; a.vy -= fy; a.vz -= fz;
+    b.vx += fx; b.vy += fy; b.vz += fz;
   }
 
   for (const e of edges) {
     if (e.a.hidden || e.b.hidden) continue;
-    const L = e.kind === "link" ? 165 : 235;
+    const L = e.kind === "link" ? 190 : 270;
     const k = e.kind === "link" ? 0.055 : 0.012;
-    const dx = e.b.x - e.a.x, dy = e.b.y - e.a.y;
-    const d = Math.max(1, Math.hypot(dx, dy));
+    const dx = e.b.x - e.a.x, dy = e.b.y - e.a.y, dz = e.b.z - e.a.z;
+    const d = Math.max(1, Math.hypot(dx, dy, dz));
     const f = (d - L) / d * k * alpha;
-    e.a.vx += dx * f; e.a.vy += dy * f; e.b.vx -= dx * f; e.b.vy -= dy * f;
+    e.a.vx += dx * f; e.a.vy += dy * f; e.a.vz += dz * f;
+    e.b.vx -= dx * f; e.b.vy -= dy * f; e.b.vz -= dz * f;
   }
 
-  for (const n of vis) { n.vx *= 0.6; n.vy *= 0.6; n.x += n.vx; n.y += n.vy; }
+  for (const n of all) {
+    n.vx *= 0.6; n.vy *= 0.6; n.vz *= 0.6;
+    n.x += n.vx; n.y += n.vy; n.z += n.vz;
+  }
 
+  // hard separation so rings/moons never interpenetrate a neighbor
   for (let pass = 0; pass < 2; pass++) {
     for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++) {
       const a = all[i], b = all[j];
-      const acy = a.y + a.bh/2 - a.r - 6, bcy = b.y + b.bh/2 - b.r - 6;
-      const dx = b.x - a.x, dy = bcy - acy;
-      const ox = (a.bw + b.bw)/2 - Math.abs(dx);
-      const oy = (a.bh + b.bh)/2 - Math.abs(dy);
-      if (ox <= 0 || oy <= 0) continue;
-      if (ox < oy) {
-        const s = (dx >= 0 ? 1 : -1) * ox * 0.5;
-        if (a !== dragNode) a.x -= s; if (b !== dragNode) b.x += s;
-      } else {
-        const s = (dy >= 0 ? 1 : -1) * oy * 0.5;
-        if (a !== dragNode) a.y -= s; if (b !== dragNode) b.y += s;
-      }
+      const dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
+      const min = a.visR + b.visR + 42;
+      const d2 = dx*dx + dy*dy + dz*dz;
+      if (d2 >= min * min || d2 < 0.01) continue;
+      const d = Math.sqrt(d2), s = (min - d) / d * 0.5;
+      a.x -= dx * s; a.y -= dy * s; a.z -= dz * s;
+      b.x += dx * s; b.y += dy * s; b.z += dz * s;
     }
   }
 }
 
 /* ---------- per-frame ---------- */
-let lastT = 0;
+let lastT = 0, lastReadout = 0;
 function frame(t) {
   const time = t / 1000, dt = Math.min(0.05, time - lastT || 0.016);
   lastT = time;
@@ -821,20 +975,23 @@ function frame(t) {
 
   if (camGlide) {
     const e = REDUCED ? 1 : 0.14;
-    cam.x += (camGlide.x - cam.x) * e;
-    cam.y += (camGlide.y - cam.y) * e;
-    cam.D += (camGlide.D - cam.D) * e;
-    if (Math.abs(cam.D - camGlide.D) < 1 &&
-        Math.hypot(cam.x - camGlide.x, cam.y - camGlide.y) < 0.5) camGlide = null;
+    let done = true;
+    for (const k of ["yaw", "pitch", "dist", "tx", "ty", "tz"]) {
+      if (!(k in camGlide)) continue;
+      cam[k] += (camGlide[k] - cam[k]) * e;
+      if (Math.abs(camGlide[k] - cam[k]) > (k === "dist" ? 1 : k === "yaw" || k === "pitch" ? 0.002 : 0.5)) done = false;
+    }
+    if (done) camGlide = null;
+  } else if (!REDUCED && time - lastInput > 5 && !pointers.size) {
+    cam.yaw += dt * 0.032;                 // idle: the galaxy drifts
   }
-  camera.position.set(cam.x, cam.y, cam.D);
-  camera.lookAt(cam.x, cam.y, 0);
+  applyCamera();
 
   const focus = focusSet();
   for (const n of nodes) {
     n.group.visible = !n.hidden;
     if (n.hidden) { n.lbl.style.display = "none"; continue; }
-    n.group.position.set(n.x, -n.y, n.cfg.z);
+    n.group.position.set(n.x, n.y, n.z);
     if (!REDUCED) {
       n.sphere.rotation.y += n.cfg.spin * dt;
       for (const { pivot, m } of n.moonPivots) pivot.rotation.y = m.phase + time * m.speed * 3;
@@ -842,8 +999,8 @@ function frame(t) {
     const target = (!focus || focus.has(n)) ? 1 : 0.13;
     n.fade += (target - n.fade) * 0.18;
     for (const m of n.mats) m.opacity = Math.min(1, n.fade * (m.__base ?? (m.__base = m.opacity ?? 1)));
-    updateLabel(n);
   }
+  layoutLabels(focus);
   for (const e of edges) {
     const on = !e.a.hidden && !e.b.hidden;
     e.line.visible = on;
@@ -851,42 +1008,89 @@ function frame(t) {
     syncEdge(e);
     const target = (!focus || (focus.has(e.a) && focus.has(e.b))) ? 1 : 0.1;
     e.fade += (target - e.fade) * 0.18;
-    e.mat.opacity = e.fade * (e.kind === "link" ? 0.55 : 0.4);
+    e.mat.opacity = e.fade * (e.kind === "link" ? 0.5 : 0.35);
   }
   if (selected && !selected.hidden) {
     selRing.visible = true;
-    selRing.position.set(selected.x, -selected.y, selected.cfg.z + selected.r + 2);
-    const s = (selected.r + 7) * 2.25;
+    selRing.position.set(selected.x, selected.y, selected.z);
+    const s = (selected.r + 8) * 2.3;
     selRing.scale.set(s, s, 1);
-    selRing.material.rotation = REDUCED ? 0 : time * 0.35;
+    selRing.material.rotation = REDUCED ? 0 : time * 0.3;
   } else selRing.visible = false;
+
+  if (time - lastReadout > 0.2) {
+    lastReadout = time;
+    const vis = nodes.filter(n => !n.hidden).length;
+    const links = edges.filter(e => !e.a.hidden && !e.b.hidden).length;
+    const deg = ((cam.yaw * 180 / Math.PI) % 360 + 360) % 360;
+    $("readout").innerHTML =
+      `◉ <b>${vis}</b> bodies · <b>${links}</b> links&ensp;│&ensp;rng ${cam.dist | 0} · brg ${deg.toFixed(0).padStart(3, "0")}°`;
+  }
 
   renderer.render(scene, camera);
 }
 
 const v3 = new THREE.Vector3();
 function project(n) {
-  v3.set(n.x, -n.y, n.cfg.z).project(camera);
+  v3.set(n.x, n.y, n.z);
+  const dist = camera.position.distanceTo(v3);
+  v3.project(camera);
   const sx = (v3.x + 1) / 2 * W, sy = (1 - v3.y) / 2 * H;
-  const dist = camera.position.distanceTo(new THREE.Vector3(n.x, -n.y, n.cfg.z));
   const pr = n.r * (H / 2) / (Math.tan(FOV2) * dist);
   return { sx, sy, pr, behind: v3.z > 1 };
 }
 
-function updateLabel(n) {
-  const { sx, sy, pr, behind } = project(n);
-  // labels live in world scale (s = px per world unit at the node's depth),
-  // which keeps the sim's label-collision boxes valid at every zoom
-  const s = pr / n.r;
-  if (behind || s < 0.4 || sx < -160 || sx > W + 160 || sy < -80 || sy > H + 160) {
-    n.lbl.style.display = "none"; return;
+/* Labels stay hidden until a planet is selected: then the selected planet
+   and its linked neighbors get labels, decluttered so nothing overprints
+   (selected > neighbors by size; losers fade out instead). */
+const LBL_LH = 13.3;        // px per line, unscaled (11.5px * 1.15)
+const LBL_PAD = 5;          // min clearance between labels
+function layoutLabels(focus) {
+  const cand = [];
+  for (const n of nodes) {
+    if (n.hidden || !focus || !focus.has(n)) {
+      n.lbl.style.display = "none"; n.lblShown = false; continue;
+    }
+    const { sx, sy, pr, behind } = project(n);
+    const s = pr / n.r;   // px per world unit at the node's depth
+    if (behind || s < 0.3 || sx < -160 || sx > W + 160 || sy < -80 || sy > H + 160) {
+      n.lbl.style.display = "none"; n.lblShown = false; continue;
+    }
+    // compress the depth→size mapping: readable when far, restrained when near
+    const ds = Math.min(1.2, 0.55 + s * 0.5);
+    const w = n.lblW * ds, h = n.labelLines.length * LBL_LH * ds;
+    cand.push({
+      n, ds, w, h, sx,
+      x: sx - w / 2, y: sy + pr + 6,
+      dim: n.fade < 0.5,
+      base: s < 0.5 ? (s - 0.3) / 0.2 : 1,
+      pri: (n === selected ? 1e6 : 0) + (focus && focus.has(n) ? 1e4 : 0)
+         + pr + (n.lblShown ? 6 : 0),   // hysteresis: incumbents keep their spot
+    });
   }
-  n.lbl.style.display = "";
-  n.lbl.style.left = sx + "px";
-  n.lbl.style.top = (sy + pr + 6 * s) + "px";
-  n.lbl.style.transform = `translate(-50%,0) scale(${Math.min(s, 1.7)})`;
-  n.lbl.style.opacity = (n.fade < 0.5 ? 0.13 : 1) * (s < 0.55 ? (s - 0.4) / 0.15 : 1);
-  n.lbl.classList.toggle("sel", n === selected);
+  cand.sort((a, b) => b.pri - a.pri);
+  const placed = [{ x: 0, y: 0, w: W, h: $("bar").offsetHeight || 90 }];  // HUD is off-limits
+  for (const c of cand) {
+    const n = c.n;
+    let ok = true;
+    for (const p of placed) {
+      if (c.x < p.x + p.w + LBL_PAD && p.x < c.x + c.w + LBL_PAD &&
+          c.y < p.y + p.h + LBL_PAD && p.y < c.y + c.h + LBL_PAD) { ok = false; break; }
+    }
+    n.lbl.style.display = "";
+    n.lbl.classList.toggle("sel", n === selected);
+    if (!ok && n !== selected) {     // lost the spot: fade, don't overprint
+      n.lbl.style.opacity = 0;
+      n.lblShown = false;
+      continue;
+    }
+    placed.push(c);
+    n.lblShown = true;
+    n.lbl.style.left = c.sx + "px";
+    n.lbl.style.top = c.y + "px";
+    n.lbl.style.transform = `translate(-50%,0) scale(${c.ds})`;
+    n.lbl.style.opacity = (c.dim ? 0.13 : 1) * c.base;
+  }
 }
 
 function focusSet() {
@@ -906,46 +1110,61 @@ function resize() {
   renderer.setSize(W, H);
   camera.aspect = W / H;
   camera.updateProjectionMatrix();
-  fitView(false);
+  if (selected && !selected.hidden) glideToSelected();
+  else fitView(false);
 }
 addEventListener("resize", resize);
 
-function contentBox() {
-  const vis = nodes.filter(n => !n.hidden);
-  if (!vis.length) return null;
-  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
-  for (const n of vis) {
-    x0 = Math.min(x0, n.x - n.bw/2); x1 = Math.max(x1, n.x + n.bw/2);
-    y0 = Math.min(y0, n.y - n.r - 8); y1 = Math.max(y1, n.y - n.r - 8 + n.bh);
-  }
-  return { x0, y0, x1, y1 };
-}
-
 function fitView(animate = true) {
-  const b = contentBox();
-  if (!b) return;
+  const vis = nodes.filter(n => !n.hidden);
+  if (!vis.length) return;
+  let cx = 0, cy = 0, cz = 0;
+  for (const n of vis) { cx += n.x; cy += n.y; cz += n.z; }
+  cx /= vis.length; cy /= vis.length; cz /= vis.length;
+
+  /* screen-space fit: for the current yaw/pitch, solve the camera distance
+     each node needs to stay inside the frustum, and take the worst case */
+  const d = camDir(), { r, u } = camBasis();
   const barH = $("bar").offsetHeight || 90;
-  const usable = Math.max(120, H - barH - 40);
-  const tanY = Math.tan(FOV2);
-  const halfW = (b.x1 - b.x0) / 2 + 40, halfH = (b.y1 - b.y0) / 2 + 30;
-  const D = Math.max(180, Math.min(2600,
-    Math.max(halfH * H / (usable * tanY), halfW / (tanY * W / H))));
+  const tanY = Math.tan(FOV2) * Math.max(0.3, (H - barH - 30) / H);
+  const tanX = Math.tan(FOV2) * W / H;
+  const pts = vis.map(n => {
+    const px = n.x - cx, py = n.y - cy, pz = n.z - cz;
+    return {
+      a: px*r[0] + py*r[1] + pz*r[2],
+      b: px*u[0] + py*u[1] + pz*u[2],
+      w: px*d[0] + py*d[1] + pz*d[2],          // toward camera
+      m: n.visR,
+    };
+  });
+  const ca = (Math.min(...pts.map(p => p.a - p.m)) + Math.max(...pts.map(p => p.a + p.m))) / 2;
+  const cb = (Math.min(...pts.map(p => p.b - p.m)) + Math.max(...pts.map(p => p.b + p.m))) / 2;
+  let need = 240;
+  for (const p of pts) {
+    need = Math.max(need,
+      (Math.abs(p.a - ca) + p.m + 20) / tanX + p.w,
+      (Math.abs(p.b - cb) + p.m + 34) / tanY + p.w);   // vertical pad leaves label room
+  }
+  const dist = Math.min(3000, need * 1.06);
+  const s = wpp(dist), ub = cb + (barH/2) * s;
   const target = {
-    x: (b.x0 + b.x1) / 2,
-    y: -(b.y0 + b.y1) / 2 + (barH / 2) * wpp(D),
-    D,
+    tx: cx + r[0]*ca + u[0]*ub,
+    ty: cy + r[1]*ca + u[1]*ub,
+    tz: cz + r[2]*ca + u[2]*ub,
+    dist,
   };
   if (!animate || REDUCED) { Object.assign(cam, target); camGlide = null; }
   else camGlide = target;
 }
 $("fit").onclick = () => fitView();
 
-/* ---------- input ---------- */
+/* ---------- input: orbit / pinch / pan / select ---------- */
 const cv = $("cv");
 const pointers = new Map();
-let panning = false, moved = false, pinch0 = null;
+let moved = false, pinch0 = null;
 let lastTap = { t: 0, x: 0, y: 0 };
-let velX = 0, velY = 0, lastMove = 0, inertia = null;
+let velYaw = 0, velPitch = 0, lastMove = 0, inertia = null;
+const clampPitch = p => Math.max(-1.3, Math.min(1.3, p));
 
 function nodeAtScreen(sx, sy) {
   let best = null, bd = 1e9;
@@ -958,27 +1177,21 @@ function nodeAtScreen(sx, sy) {
   }
   return best;
 }
-const screenToWorld = (sx, sy) => {
-  const s = wpp(cam.D);
-  return { x: cam.x + (sx - W/2) * s, y: -(cam.y - (sy - H/2) * s) };  // sim coords (y down)
-};
 
 cv.addEventListener("pointerdown", e => {
   cv.setPointerCapture(e.pointerId);
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
   cancelAnimationFrame(inertia); camGlide = null;
+  lastInput = lastT;
   moved = false;
   if (pointers.size === 1) {
-    dragNode = nodeAtScreen(e.clientX, e.clientY);
-    panning = !dragNode;
-    velX = velY = 0; lastMove = performance.now();
+    velYaw = velPitch = 0; lastMove = performance.now();
   } else if (pointers.size === 2) {
-    dragNode = null; panning = false;
     const [a, b] = [...pointers.values()];
     pinch0 = {
       d: Math.hypot(a.x - b.x, a.y - b.y),
       mx: (a.x + b.x)/2, my: (a.y + b.y)/2,
-      D: cam.D, x: cam.x, y: cam.y,
+      dist: cam.dist, tx: cam.tx, ty: cam.ty, tz: cam.tz,
     };
   }
 });
@@ -992,28 +1205,27 @@ cv.addEventListener("pointermove", e => {
   const dx = e.clientX - prev.x, dy = e.clientY - prev.y;
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (Math.hypot(dx, dy) > 0) moved = true;
+  lastInput = lastT;
 
   if (pointers.size === 2 && pinch0) {
     const [a, b] = [...pointers.values()];
     const d = Math.hypot(a.x - b.x, a.y - b.y);
     const mx = (a.x + b.x)/2, my = (a.y + b.y)/2;
-    const D = Math.max(120, Math.min(3200, pinch0.D * pinch0.d / d));
-    // keep the pinch midpoint anchored
-    const s0 = wpp(pinch0.D), s1 = wpp(D);
-    const wx = pinch0.x + (pinch0.mx - W/2) * s0;
-    const wy = pinch0.y - (pinch0.my - H/2) * s0;
-    cam.D = D;
-    cam.x = wx - (mx - W/2) * s1;
-    cam.y = wy + (my - H/2) * s1;
-  } else if (dragNode) {
-    const p = screenToWorld(e.clientX, e.clientY);
-    dragNode.x = p.x; dragNode.y = p.y; dragNode.vx = dragNode.vy = 0;
-    alpha = Math.max(alpha, 0.28);
-  } else if (panning) {
-    const s = wpp(cam.D);
-    cam.x -= dx * s; cam.y += dy * s;
-    const now = performance.now(), dt = Math.max(1, now - lastMove);
-    velX = dx / dt * 16; velY = dy / dt * 16; lastMove = now;
+    cam.dist = Math.max(130, Math.min(3400, pinch0.dist * pinch0.d / d));
+    const { r, u } = camBasis();
+    const s = wpp(cam.dist);
+    const px = (mx - pinch0.mx) * s, py = (my - pinch0.my) * s;
+    cam.tx = pinch0.tx - r[0]*px + u[0]*py;
+    cam.ty = pinch0.ty - r[1]*px + u[1]*py;
+    cam.tz = pinch0.tz - r[2]*px + u[2]*py;
+  } else if (pointers.size === 1) {
+    // one finger spins the galaxy
+    cam.yaw -= dx * 0.0045;
+    cam.pitch = clampPitch(cam.pitch + dy * 0.0045);
+    const now = performance.now(), dtm = Math.max(1, now - lastMove);
+    velYaw = -dx / dtm * 16 * 0.0045;
+    velPitch = dy / dtm * 16 * 0.0045;
+    lastMove = now;
   }
 });
 
@@ -1021,8 +1233,6 @@ function endPointer(e) {
   pointers.delete(e.pointerId);
   if (pointers.size < 2) pinch0 = null;
   if (pointers.size > 0) return;
-  const wasPan = panning, wasDrag = dragNode;
-  panning = false; dragNode = null;
 
   if (!moved) {
     const n = nodeAtScreen(e.clientX, e.clientY);
@@ -1031,34 +1241,35 @@ function endPointer(e) {
     else {
       const isDouble = now - lastTap.t < 300 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 24;
       if (isDouble) {
-        const w = screenToWorld(e.clientX, e.clientY);
-        const D = Math.max(140, cam.D * 0.55);
-        const s = wpp(D);
-        camGlide = { x: w.x - (e.clientX - W/2) * s, y: -w.y + (e.clientY - H/2) * s, D };
+        // dive toward the tapped point
+        const { r, u } = camBasis();
+        const s = wpp(cam.dist);
+        const px = (e.clientX - W/2) * s, py = (H/2 - e.clientY) * s;
+        camGlide = {
+          tx: cam.tx + r[0]*px + u[0]*py,
+          ty: cam.ty + r[1]*px + u[1]*py,
+          tz: cam.tz + r[2]*px + u[2]*py,
+          dist: Math.max(160, cam.dist * 0.55),
+        };
         lastTap = { t: 0, x: 0, y: 0 };
       } else { deselect(); lastTap = { t: now, x: e.clientX, y: e.clientY }; }
     }
-  } else if (wasPan && !REDUCED && Math.abs(velX) + Math.abs(velY) > 2) {
+  } else if (!REDUCED && Math.abs(velYaw) + Math.abs(velPitch) > 0.002) {
     const glide = () => {
-      velX *= 0.92; velY *= 0.92;
-      const s = wpp(cam.D);
-      cam.x -= velX * s; cam.y += velY * s;
-      if (Math.abs(velX) + Math.abs(velY) > 0.4) inertia = requestAnimationFrame(glide);
+      velYaw *= 0.93; velPitch *= 0.93;
+      cam.yaw += velYaw; cam.pitch = clampPitch(cam.pitch + velPitch);
+      if (Math.abs(velYaw) + Math.abs(velPitch) > 0.0004) inertia = requestAnimationFrame(glide);
     };
     inertia = requestAnimationFrame(glide);
-  } else if (wasDrag) alpha = Math.max(alpha, 0.15);
+  }
 }
 cv.addEventListener("pointerup", endPointer);
 cv.addEventListener("pointercancel", endPointer);
 
 cv.addEventListener("wheel", e => {
   e.preventDefault();
-  const D = Math.max(120, Math.min(3200, cam.D * Math.exp(e.deltaY * 0.0016)));
-  const s0 = wpp(cam.D), s1 = wpp(D);
-  const wx = cam.x + (e.clientX - W/2) * s0, wy = cam.y - (e.clientY - H/2) * s0;
-  cam.D = D;
-  cam.x = wx - (e.clientX - W/2) * s1;
-  cam.y = wy + (e.clientY - H/2) * s1;
+  lastInput = lastT;
+  cam.dist = Math.max(130, Math.min(3400, cam.dist * Math.exp(e.deltaY * 0.0016)));
   camGlide = null;
 }, { passive: false });
 
@@ -1151,6 +1362,7 @@ function select(n) {
   $("pDot").style.background = n.color;
   $("pDot").style.color = n.color;
   $("pType").textContent = n.type;
+  $("pDesig").textContent = "ID·" + n.cfg.seed.toString(16).toUpperCase().padStart(8, "0").slice(0, 6);
   $("pDate").textContent = (n.generated_at || "").slice(0, 10);
   $("pTitle").textContent = n.title;
   $("pTags").innerHTML = n.tags.map(t => `<span class="tag">#${esc(t)}</span>`).join("");
@@ -1170,12 +1382,19 @@ function select(n) {
   document.querySelectorAll(".links button").forEach(b => b.onclick = () => jump(b.dataset.path));
   $("sheetScroll").scrollTop = 0;
   setSheet(sheetPos === "full" ? "full" : "peek");
+  glideToSelected();
+}
 
-  // glide so the planet sits in the strip between the bar and the sheet
+/* glide so the selected planet hangs in the strip between the bar and the sheet */
+function glideToSelected() {
+  const n = selected;
+  if (!n) return;
   const barH = $("bar").offsetHeight || 90;
   const ys = barH + Math.max(100, H - SHEET_PEEK - barH) / 2;
-  const D = Math.max(240, Math.min(cam.D, 620));
-  camGlide = { x: n.x, y: -n.y - (H/2 - ys) * wpp(D), D };
+  const D = Math.max(240, Math.min(cam.dist, 620));
+  const { u } = camBasis();
+  const o = (H / 2 - ys) * wpp(D);
+  camGlide = { tx: n.x - u[0]*o, ty: n.y - u[1]*o, tz: n.z - u[2]*o, dist: D };
 }
 
 const linkList = (label, ns) => ns.length

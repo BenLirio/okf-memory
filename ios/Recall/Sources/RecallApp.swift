@@ -13,6 +13,9 @@ struct RecallApp: App {
                 CaptureView().tabItem { Label("Capture", systemImage: "plus.circle.fill") }
                 AskView().tabItem { Label("Ask", systemImage: "waveform.circle") }
             }
+            // Match the Memory Web's sci-fi HUD: deep-space dark, cyan accent.
+            .preferredColorScheme(.dark)
+            .tint(Color(red: 0.31, green: 0.84, blue: 0.95))
             .task {
                 await NotificationSync.requestPermission()
                 await NotificationSync.sync()
