@@ -10,7 +10,7 @@ struct GraphView: UIViewRepresentable {
         config.defaultWebpagePreferences.allowsContentJavaScript = true
         let web = WKWebView(frame: .zero, configuration: config)
         web.isOpaque = false
-        web.backgroundColor = UIColor(red: 0.051, green: 0.051, blue: 0.051, alpha: 1)
+        web.backgroundColor = UIColor(red: 0.043, green: 0.047, blue: 0.071, alpha: 1)  // #0b0c12
         web.scrollView.contentInsetAdjustmentBehavior = .never
         load(web)
         return web
